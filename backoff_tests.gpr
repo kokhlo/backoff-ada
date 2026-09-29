@@ -1,4 +1,4 @@
-with "backoff_ada.gpr";
+with "backoff.gpr";
 
 project Backoff_Ada_Tests is
    for Source_Dirs use ("test");
