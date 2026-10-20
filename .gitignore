@@ -5,7 +5,9 @@ bin/
 *.ali
 *.o
 
-# Alire working directory (keep alire.toml)
+# Alire working directory and generated config (keep alire.toml)
+alire/
+config/
 .alire/
 
 # Editor temporaries
