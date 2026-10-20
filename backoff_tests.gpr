@@ -1,6 +1,6 @@
 with "backoff.gpr";
 
-project Backoff_Ada_Tests is
+project Backoff_Tests is
    for Source_Dirs use ("test");
    for Object_Dir use "obj";
    for Exec_Dir use "bin";
@@ -14,4 +14,4 @@ project Backoff_Ada_Tests is
    package Binder is
       for Default_Switches ("Ada") use ("-Es");
    end Binder;
-end Backoff_Ada_Tests;
+end Backoff_Tests;
