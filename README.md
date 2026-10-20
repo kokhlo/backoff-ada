@@ -1,5 +1,6 @@
 # backoff-ada
 
+[![CI](https://github.com/kokhlo/backoff-ada/actions/workflows/build-test.yml/badge.svg)](https://github.com/kokhlo/backoff-ada/actions/workflows/build-test.yml)
 [![Alire](https://img.shields.io/badge/alire-0.1.0--dev-blue.svg)](https://alire.ada.dev)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -14,6 +15,18 @@ Resilient network clients and distributed systems need exponential backoff to ha
 - **Max elapsed time** to bound total retry duration
 - **Generic retry loop** with callback-based progress tracking
 - **Deterministic testability**: inject random seeds for reproducible jitter tests
+
+## Installation
+
+With [Alire](https://alire.ada.dev):
+
+```bash
+alr with backoff
+```
+
+> **Note:** `backoff` is available after the alire-index merge
+> ([PR](https://github.com/alire-project/alire-index/pull/2099)). Until then, use the repository directly:
+> `alr with --use /path/to/backoff-ada`
 
 ## Usage
 
