@@ -13,7 +13,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # macos-15 pinned: macos-latest (26.x) ships a CLT SDK whose .tbd
+        # files the GNAT-bundled ld cannot parse ("unknown architecture").
+        os: [ubuntu-latest, macos-15]
         gnat: ["14.2.1", "16.1.0"]
     steps:
       - uses: actions/checkout@v4
