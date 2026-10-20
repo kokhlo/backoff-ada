@@ -7,7 +7,6 @@ package body Backoff.Retry is
      (Config   : in out Backoff_Config;
       Success  : out Boolean)
    is
-      Attempt : Positive;
       Delay_Val : Duration;
    begin
       Success := False;
@@ -26,8 +25,10 @@ package body Backoff.Retry is
          end if;
 
          Delay_Val := Next_Back_Off (Config);
-         if Delay_Val = 0.0 then
-            --  Max_Elapsed_Time exceeded; stop retrying.
+         if Elapsed_Exceeded (Config) then
+            --  Max_Elapsed_Time exceeded; stop retrying. NOTE: a delay of
+            --  0.0 is a legitimate "retry immediately" value (Full jitter
+            --  can produce it); only elapsed exhaustion stops the loop.
             exit;
          end if;
 

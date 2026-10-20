@@ -8,8 +8,11 @@ package Backoff.Retry is
    --  Generic retry procedure: loop until Op returns True or Max_Attempts exhausted.
    --  On each failure, calls On_Failure (Attempt, Delay_For) with the attempt
    --  count and the delay before the next attempt (seconds as Duration).
-   --  Returns Success = True if op succeeded, False if Max_Attempts reached.
+   --  Returns Success = True if op succeeded, False if Max_Attempts reached
+   --  or the elapsed-time budget ran out.
    --  Note: Does NOT actually sleep; caller must honor Delay_For in On_Failure.
+   --  A Delay_For of 0.0 means "retry immediately" (legitimate Full-jitter
+   --  value), not a stop; the loop stops only on elapsed exhaustion.
    generic
       with function Op return Boolean;
       Max_Attempts : Positive := 5;
