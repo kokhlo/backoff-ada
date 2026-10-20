@@ -1,7 +1,7 @@
 # backoff-ada
 
 [![CI](https://github.com/kokhlo/backoff-ada/actions/workflows/build-test.yml/badge.svg)](https://github.com/kokhlo/backoff-ada/actions/workflows/build-test.yml)
-[![Alire](https://img.shields.io/badge/alire-0.1.0--dev-blue.svg)](https://alire.ada.dev)
+[![Alire](https://img.shields.io/badge/alire-0.3.0-blue.svg)](https://alire.ada.dev)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Exponential backoff with jitter and retry for Ada. Inspired by [cenkalti/backoff](https://github.com/cenkalti/backoff) (Go, 3k⭐).
@@ -12,7 +12,8 @@ Resilient network clients and distributed systems need exponential backoff to ha
 
 - **Exponential backoff** with configurable initial interval, multiplier, and max interval
 - **Jitter modes**: None (deterministic), Decorrelated (AWS-style ±factor), Full (uniform [0, x])
-- **Max elapsed time** to bound total retry duration
+- **Max elapsed time** to bound total retry duration (0.0 = no limit)
+- **Validated configuration**: invalid values raise `Constraint_Error` with a descriptive message
 - **Generic retry loop** with callback-based progress tracking
 - **Deterministic testability**: inject random seeds for reproducible jitter tests
 
@@ -24,9 +25,7 @@ With [Alire](https://alire.ada.dev):
 alr with backoff
 ```
 
-> **Note:** `backoff` is available after the alire-index merge
-> ([PR](https://github.com/alire-project/alire-index/pull/2099)). Until then, use the repository directly:
-> `alr with --use /path/to/backoff-ada`
+Available in the community index since 0.2.0 (`index/ba/backoff/`). To pin a local checkout instead: `alr with backoff --use /path/to/backoff-ada`.
 
 ## Usage
 
@@ -43,21 +42,26 @@ begin
                Initial_Interval => 0.500,    -- 500ms
                Multiplier => 1.5,
                Max_Interval => 60.0,         -- 60 seconds
-               Max_Elapsed_Time => 900.0);   -- 15 minutes
+               Max_Elapsed_Time => 900.0);   -- 15 minutes; 0.0 = no limit
 
    loop
+      exit when Elapsed_Exceeded (Config);
       Delay_Val := Next_Back_Off (Config);
-      exit when Delay_Val = 0.0;  -- Max elapsed time reached
-      
+
       delay Standard.Duration (Delay_Val);
       --  Retry your operation here
    end loop;
 end Example;
 ```
 
+> Note: the jitter mode is the **discriminant** of `Backoff_Config`, fixed at
+> declaration — `Initialize` has no `Jitter` parameter (0.3.0 removed the
+> dead parameter that silently did nothing).
+
 ### Retry helper
 
 ```ada
+with Ada.Text_IO; use Ada.Text_IO;
 with Backoff; use Backoff;
 with Backoff.Retry;
 
@@ -73,7 +77,7 @@ procedure Retry_Example is
 
    procedure On_Failure (Attempt : Positive; Delay_For : Duration) is
    begin
-      Put_Line ("Attempt" & Positive'Image(Attempt) & 
+      Put_Line ("Attempt" & Positive'Image(Attempt) &
                 " failed, waiting" & Duration'Image(Delay_For) & "s");
       delay Standard.Duration (Delay_For);
    end On_Failure;
@@ -84,9 +88,9 @@ procedure Retry_Example is
       On_Failure => On_Failure);
 
 begin
-   Initialize (Config, Jitter => Full);
+   Initialize (Config);
    Retry_Op (Config, Success);
-   
+
    if Success then
       Put_Line ("Operation succeeded");
    else
@@ -95,11 +99,19 @@ begin
 end Retry_Example;
 ```
 
+A `Delay_For` of `0.0` from `On_Failure` is a legitimate "retry immediately"
+draw (Full jitter), not a stop; the loop stops only when the elapsed-time
+budget runs out or attempts are exhausted.
+
 ## Design Choices
 
 ### Limited record for state
 
 `Backoff_Config` is a `limited record` (single-task use). Caller owns concurrency — spawn multiple tasks with separate configs if needed. This keeps the API simple and avoids protected-object overhead for single-threaded clients.
+
+### Validated configuration
+
+`Initialize`, `Reset` and `Next_Back_Off` validate the configuration and raise `Constraint_Error` (with a message naming the field) for `Initial_Interval <= 0`, `Multiplier < 1`, `Randomization_Factor` outside `[0, 1]`, `Max_Interval <= 0`, `Max_Interval < Initial_Interval`, or `Max_Elapsed_Time < 0`. Before 0.3.0 such configs silently produced negative delays that callers fed to `delay`.
 
 ### Deterministic jitter testing
 
@@ -117,11 +129,11 @@ Matches cenkalti/backoff Go defaults:
 - Randomization factor: 0.5 (decorrelated jitter: multiplier in [0.5x, 1.5x])
 - Multiplier: 1.5
 - Max interval: 60 seconds
-- Max elapsed time: 15 minutes
+- Max elapsed time: 15 minutes (0.0 = no limit)
 
 ## Niche Status
 
-As of 2026-08-29, `alr search backoff` and `alr search retry` return zero hits. This is the first backoff/retry library published for Ada.
+`backoff` was the first backoff/retry library published for Ada (since 0.2.0 in the community index).
 
 ## Roadmap
 
@@ -129,9 +141,11 @@ As of 2026-08-29, `alr search backoff` and `alr search retry` return zero hits. 
 - [x] Jitter modes (None, Decorrelated, Full)
 - [x] Generic retry loop
 - [x] Tests: exact sequence, capping, elapsed time, jitter bounds, retry scenarios
-- [ ] Publish to alire-index at github.com/kokhlo/backoff-ada
+- [x] Publish to alire-index at github.com/kokhlo/backoff-ada
 - [ ] Integration example: redis-ada reconnect with exponential backoff
 - [ ] Adaptive jitter (measure actual server load)
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 
@@ -139,4 +153,4 @@ MIT License — see [LICENSE](LICENSE)
 
 ## Contributing
 
-PRs welcome. For major changes, open an issue first to discuss the design. Follow Ada Quality and Style Guide conventions.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
