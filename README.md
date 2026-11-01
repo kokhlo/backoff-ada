@@ -1,10 +1,8 @@
 # backoff-ada
 
 [![CI](https://github.com/kokhlo/backoff-ada/actions/workflows/build-test.yml/badge.svg)](https://github.com/kokhlo/backoff-ada/actions/workflows/build-test.yml)
-[![Alire](https://img.shields.io/badge/alire-0.3.0-blue.svg)](https://alire.ada.dev)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Exponential backoff with jitter and retry for Ada. Inspired by [cenkalti/backoff](https://github.com/cenkalti/backoff) (Go, 3k⭐).
+Exponential backoff with jitter and retry for Ada. Zero dependencies, validated configuration, deterministic testability — the first backoff/retry library published for Ada. Inspired by [cenkalti/backoff](https://github.com/cenkalti/backoff) (Go, 3k⭐).
 
 ## What / Why
 
@@ -17,15 +15,44 @@ Resilient network clients and distributed systems need exponential backoff to ha
 - **Generic retry loop** with callback-based progress tracking
 - **Deterministic testability**: inject random seeds for reproducible jitter tests
 
-## Installation
-
-With [Alire](https://alire.ada.dev):
+## Quick start
 
 ```bash
 alr with backoff
 ```
 
-Available in the community index since 0.2.0 (`index/ba/backoff/`). To pin a local checkout instead: `alr with backoff --use /path/to/backoff-ada`.
+```ada
+with Backoff;      use Backoff;
+with Backoff.Retry;
+
+procedure Quick_Start is
+   Config : Backoff_Config (Jitter => Full);
+
+   function Flaky_Op return Boolean is
+   begin
+      return False;  --  your operation; True on success
+   end Flaky_Op;
+
+   --  Backoff.Duration is a Float subtype (seconds); qualify it —
+   --  plain Duration is Standard.Duration and will not match.
+   procedure On_Failure (Attempt : Positive; Delay_For : Backoff.Duration) is
+   begin
+      null;  --  log, then `delay Delay_For` (the loop does not sleep)
+   end On_Failure;
+
+   procedure Retry_Op is new Backoff.Retry.Retry_Loop
+     (Op           => Flaky_Op,
+      Max_Attempts => 5,
+      On_Failure   => On_Failure);
+
+   Success : Boolean;
+begin
+   Retry_Op (Config, Success);
+end Quick_Start;
+```
+
+A complete runnable version (prints each delay, no sleeping) is in
+[examples/retry_demo.adb](examples/retry_demo.adb).
 
 ## Usage
 
@@ -75,10 +102,10 @@ procedure Retry_Example is
       return False;
    end Attempt_Operation;
 
-   procedure On_Failure (Attempt : Positive; Delay_For : Duration) is
+   procedure On_Failure (Attempt : Positive; Delay_For : Backoff.Duration) is
    begin
       Put_Line ("Attempt" & Positive'Image(Attempt) &
-                " failed, waiting" & Duration'Image(Delay_For) & "s");
+                " failed, waiting" & Backoff.Duration'Image(Delay_For) & "s");
       delay Standard.Duration (Delay_For);
    end On_Failure;
 
@@ -133,7 +160,17 @@ Matches cenkalti/backoff Go defaults:
 
 ## Niche Status
 
-`backoff` was the first backoff/retry library published for Ada (since 0.2.0 in the community index).
+`backoff` was the first backoff/retry library published for Ada (since 0.2.0 in the community index). To pin a local checkout instead: `alr with backoff --use /path/to/backoff-ada`.
+
+## Building and testing
+
+```bash
+alr build                             # library
+gprbuild -p -P backoff_tests.gpr      # tests
+./bin/backoff-tests                   # 39 assertions
+gprbuild -p -P examples/backoff_examples.gpr   # examples (not part of alr build)
+./bin/retry_demo
+```
 
 ## Roadmap
 
