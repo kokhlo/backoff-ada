@@ -1,0 +1,20 @@
+--  Builds the examples against the library. NOT part of `alr build`:
+--  the crate project (backoff.gpr) only compiles src/, so building
+--  the release stays unaffected by this directory.
+--
+--  Build & run:
+--     gprbuild -p -P examples/backoff_examples.gpr
+--     ./bin/retry_demo
+with "../backoff.gpr";
+
+project Backoff_Examples is
+   for Source_Dirs use (".");
+   for Object_Dir use "../obj/examples";
+   for Exec_Dir use "../bin";
+   for Main use ("retry_demo.adb");
+   for Create_Missing_Dirs use "True";
+
+   package Compiler is
+      for Default_Switches ("Ada") use ("-gnatwa", "-O2");
+   end Compiler;
+end Backoff_Examples;
